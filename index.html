@@ -145,7 +145,7 @@
   <div id="banner" class="banner"></div>
 
   <div class="cipherbox">
-    <div class="prompt-tag">&gt; incoming transmission // decrypt to proceed</div>
+    <div class="prompt-tag" id="prompttag">&gt; incoming transmission // decrypt to proceed</div>
     <div class="cipher" id="cipher">—</div>
     <div class="plainprev" id="plainprev"></div>
     <div class="kind" id="kind">encrypted message</div>
@@ -194,7 +194,8 @@ const RELEASE0 = new Date(2026,7,7,6,0); // first drop: Fri Aug 7 2026, 06:00 ET
 const PLAY_URL = "";                     // paste your live URL, e.g. https://decrypt-friday.netlify.app
 
 /* ============ PUZZLES (ciphertext generated from plaintext at runtime) ============ */
-const PUZZLES = [
+/* SAYINGS = security wisdom weeks. SONGS = parody weeks (original title-riffs, no real lyrics). */
+const SAYINGS = [
  {plain:"TRUST, BUT VERIFY.", who:"Russian proverb", cipher:{t:"caesar",s:3},
   note:"The heart of <b>Zero Trust</b>: verification never stops — not even for insiders, not even after they're already in."},
  {plain:"A CHAIN IS ONLY AS STRONG AS ITS WEAKEST LINK.", who:"Proverb", cipher:{t:"caesar",s:5},
@@ -244,6 +245,34 @@ const PUZZLES = [
  {plain:"MATH IS THE ONLY REAL LOCK.", who:"Cryptographer's creed", cipher:{t:"affine",a:5,b:8},
   note:"That was an <b>Affine cipher</b> — (5x + 8) mod 26. Modern encryption is this idea grown up: security resting on math too costly to reverse."},
 ];
+const SONGS = [
+ {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
+  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."},
+ {song:true, plain:"NEVER GONNA GIVE ROOT UP.", who:"with apologies to Rick Astley", cipher:{t:"atbash"},
+  note:"The anthem of <b>least privilege</b>: admin and root are the rights you never hand out casually, and never stop tracking."},
+ {song:true, plain:"SHOULD I PATCH OR SHOULD I GO?", who:"with apologies to The Clash", cipher:{t:"caesar",s:6},
+  note:"The eternal ops dilemma. The answer is almost always <b>patch</b> — the risk of the known hole beats the risk of the reboot."},
+ {song:true, plain:"EVERY LOG YOU TAKE.", who:"with apologies to The Police", cipher:{t:"vigenere",k:"AUDIT"},
+  note:"The unofficial theme of the <b>SOC</b>: every event recorded and watched, because you can't investigate what you never logged."},
+ {song:true, plain:"SMELLS LIKE ZERO TRUST.", who:"with apologies to Nirvana", cipher:{t:"caesar",s:9},
+  note:"The modern security mood. <b>Zero Trust</b>: assume nothing, verify everything, and trust no network by default."},
+ {song:true, plain:"TAKE ON MFA.", who:"with apologies to a-ha", cipher:{t:"a1z26"},
+  note:"Take on me — but first, take on <b>MFA</b>. The single cheapest control that stops the most account takeovers."},
+ {song:true, plain:"DON'T STOP PATCHIN'.", who:"with apologies to Journey", cipher:{t:"caesar",s:14},
+  note:"Don't stop. <b>Continuous patching</b> is boring and unglamorous — and the single biggest reason you sleep at night."},
+ {song:true, plain:"HARDER, BETTER, FASTER, ENCRYPTED.", who:"with apologies to Daft Punk", cipher:{t:"railfence",r:3},
+  note:"Harder, better, faster — and above all, <b>encrypted</b>. Data protected at rest and in transit is data a thief can't use."},
+];
+/* Interleave: a parody lands on every 4th week; sayings fill the rest. */
+const PUZZLES = (function(){
+  const out=[]; let si=0, gi=0; const total=SAYINGS.length+SONGS.length;
+  for(let i=0;i<total;i++){
+    if((i+1)%4===0 && gi<SONGS.length) out.push(SONGS[gi++]);
+    else if(si<SAYINGS.length) out.push(SAYINGS[si++]);
+    else if(gi<SONGS.length) out.push(SONGS[gi++]);
+  }
+  return out;
+})();
 
 /* ============ CIPHER ENGINE ============ */
 const A=65;
@@ -325,6 +354,7 @@ function load(i){
   $("cipher").textContent=encrypt(p);
   $("plainprev").textContent="";
   $("kind").textContent="encrypted message";
+  $("prompttag").textContent = p.song ? "> intercepted broadcast // PARODY TRANSMISSION" : "> incoming transmission // decrypt to proceed";
   $("no").textContent="FILE No. "+(i+1);
   $("datelabel").textContent=dateFor(i);
   $("prev").disabled=(i<=0);

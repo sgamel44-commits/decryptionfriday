@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DECRYPT FRIDAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000600;
+    --green:#33ff66;
+    --green-dim:#12963a;
+    --green-bright:#b6ffcb;
+    --green-faint:#0c5322;
+    --amber:#ffb000;
+    --font:'VT323',ui-monospace,'Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  html{font-size:19px}
+  html,body{overflow-x:hidden}
+  body{
+    margin:0;background:var(--bg);color:var(--green);
+    font-family:var(--font);font-size:1.1rem;line-height:1.4;letter-spacing:.5px;
+    text-shadow:0 0 4px rgba(51,255,102,.45);
+  }
+  /* CRT overlays */
+  .scanlines{position:fixed;inset:0;pointer-events:none;z-index:60;
+    background:repeating-linear-gradient(rgba(0,0,0,0) 0 2px, rgba(0,0,0,.32) 2px 3px);}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:61;
+    box-shadow:inset 0 0 180px rgba(0,0,0,.95), inset 0 0 60px rgba(0,0,0,.6);
+    background:radial-gradient(120% 120% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%);}
+  .flickerlayer{position:fixed;inset:0;pointer-events:none;z-index:59;background:rgba(51,255,102,.02);
+    animation:softflicker .14s infinite steps(2);}
+  @keyframes softflicker{0%{opacity:.55}100%{opacity:.9}}
+  .poweron{position:fixed;inset:0;z-index:100;pointer-events:none;background:var(--green-bright);
+    transform-origin:center;animation:powerOn .62s ease-out forwards}
+  @keyframes powerOn{
+    0%{opacity:0;transform:scaleY(.002)}
+    9%{opacity:.95;transform:scaleY(.006)}
+    22%{opacity:.75;transform:scaleY(1)}
+    100%{opacity:0;transform:scaleY(1)}
+  }
+
+  .wrap{max-width:940px;margin:0 auto;padding:30px 34px 90px;position:relative;z-index:1}
+  .bootline{color:var(--green-dim);min-height:1.35em;font-size:1rem;white-space:pre}
+  .titlewrap{margin:6px 0 2px}
+  h1{font-size:clamp(2.4rem,7vw,3.6rem);line-height:1;margin:0;letter-spacing:2px;color:var(--green);
+     text-shadow:0 0 6px rgba(51,255,102,.7),0 0 18px rgba(51,255,102,.35);
+     animation:flickerIn 1.5s linear both}
+  @keyframes flickerIn{
+    0%{opacity:0}4%{opacity:.7}6%{opacity:.15}9%{opacity:1}12%{opacity:.3}
+    16%{opacity:1}21%{opacity:.5}25%{opacity:1}33%{opacity:.75}38%{opacity:1}
+    55%{opacity:.9}60%{opacity:1}100%{opacity:1}
+  }
+  .cursor{display:inline-block;width:.6ch;background:var(--green);color:var(--green);
+    margin-left:4px;animation:blink 1.06s steps(1) infinite;box-shadow:0 0 8px rgba(51,255,102,.7)}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  .sub{color:var(--green-dim);font-size:1.05rem;margin:4px 0 16px}
+
+  .headrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    border-top:1px solid var(--green-faint);border-bottom:1px solid var(--green-faint);padding:8px 0;margin-bottom:16px}
+  .nav{display:flex;align-items:center;gap:12px;color:var(--green-dim);font-size:1rem}
+  .nav button{background:none;border:1px solid var(--green-faint);color:var(--green);
+    padding:2px 10px;cursor:pointer;font-family:var(--font);font-size:1.1rem;line-height:1.2}
+  .nav button:disabled{opacity:.3;cursor:default}
+  .nav button:not(:disabled):hover{background:var(--green);color:#000;text-shadow:none}
+  .no{color:var(--green-dim);font-size:1rem}
+
+  .banner{border:1px dashed var(--amber);color:var(--amber);padding:8px 12px;margin:0 0 14px;
+    text-shadow:0 0 5px rgba(255,176,0,.5);display:none}
+
+  .cipherbox{border:1px solid var(--green-faint);padding:26px 18px;text-align:center;background:rgba(51,255,102,.02)}
+  .prompt-tag{color:var(--green-dim);font-size:.95rem;text-align:left;margin-bottom:10px}
+  .cipher{font-size:clamp(1.7rem,4.5vw,2.5rem);letter-spacing:6px;line-height:1.5;word-break:break-word;color:var(--green-bright);
+    text-shadow:0 0 8px rgba(120,255,150,.55)}
+  .plainprev{font-size:1.3rem;letter-spacing:2px;color:var(--green);margin-top:8px;min-height:0}
+  .kind{margin-top:14px;color:var(--green-dim);font-size:.95rem;letter-spacing:2px;text-transform:uppercase}
+
+  .inputrow{margin-top:16px;display:flex;align-items:center;gap:8px;border:1px solid var(--green-faint);padding:2px 10px}
+  .inputrow .caret{color:var(--green);flex:none}
+  input.guess{flex:1;font-family:var(--font);font-size:1.25rem;padding:10px 2px;border:none;background:transparent;
+    color:var(--green-bright);outline:none;letter-spacing:2px;text-shadow:0 0 5px rgba(120,255,150,.5)}
+  input.guess::placeholder{color:var(--green-faint)}
+  .btnrow{display:flex;gap:12px;margin-top:14px}
+  .btn{flex:1;font-family:var(--font);font-size:1.2rem;padding:9px;cursor:pointer;letter-spacing:1px;
+    background:transparent;border:1px solid var(--green);color:var(--green);text-transform:uppercase}
+  .btn::before{content:"[ "}.btn::after{content:" ]"}
+  .btn:hover{background:var(--green);color:#000;text-shadow:none}
+  .btn.primary{border-color:var(--green);background:rgba(51,255,102,.12)}
+  .btn.primary:hover{background:var(--green);color:#000}
+  .status{min-height:1.4em;margin-top:12px;color:var(--amber);font-size:1.05rem;text-shadow:0 0 5px rgba(255,176,0,.4)}
+  .hints{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .hintline{color:var(--green-dim);border-left:2px solid var(--green-faint);padding:6px 12px;display:none;font-size:1.05rem}
+  .hintline.show{display:block}
+
+  .reveal{margin-top:18px;display:none}
+  .reveal.show{display:block}
+  .quote{text-align:center;font-size:1.6rem;line-height:1.4;margin:2px 0;color:var(--green-bright);
+    text-shadow:0 0 8px rgba(120,255,150,.5)}
+  .who{text-align:center;color:var(--green-dim);font-size:1.1rem;margin-bottom:14px}
+  .note{border:1px solid var(--green-faint);border-left:3px solid var(--green);padding:14px 16px;font-size:1.1rem;line-height:1.45}
+  .note b{color:var(--green-bright)}
+
+  .card{border:1px solid var(--green);padding:6px 0 0;margin-top:18px;background:rgba(51,255,102,.03)}
+  .card-bar{background:var(--green);color:#000;padding:2px 12px;font-size:.95rem;letter-spacing:2px;
+    display:flex;justify-content:space-between;text-shadow:none}
+  .card-body{padding:16px 18px 16px}
+  .card-cipher{font-size:1.4rem;letter-spacing:4px;color:var(--green-bright);margin:2px 0 14px;word-break:break-word}
+  .card-meter{display:flex;gap:6px;margin-bottom:12px}
+  .pip{width:30px;height:14px;border:1px solid var(--green)}
+  .pip.on{background:var(--green);box-shadow:0 0 8px rgba(51,255,102,.6)}
+  .card-score{font-size:1.25rem;color:var(--green-bright)}
+  .card-foot{color:var(--green-dim);font-size:.95rem;margin-top:6px;letter-spacing:1px}
+
+  .share{display:flex;gap:12px;margin-top:14px}
+  .hintsline{text-align:center;color:var(--green-dim);font-size:.95rem;margin-top:10px}
+  .streak{color:var(--green-dim);font-size:1rem;margin-top:26px;border-top:1px solid var(--green-faint);padding-top:10px}
+  .lockpanel{border:1px solid var(--green);padding:44px 24px;text-align:center;background:rgba(51,255,102,.03);margin-top:10px}
+  .lock-tag{color:var(--amber);letter-spacing:3px;font-size:1.1rem;text-shadow:0 0 6px rgba(255,176,0,.5)}
+  .lock-title{color:var(--green-dim);letter-spacing:3px;margin:16px 0 20px;text-transform:uppercase;font-size:1.1rem}
+  .countdown{font-size:clamp(2.6rem,11vw,4.4rem);color:var(--green-bright);letter-spacing:4px;line-height:1;
+    text-shadow:0 0 16px rgba(120,255,150,.6)}
+  .lock-sub{color:var(--green-dim);margin-top:18px;letter-spacing:2px;font-size:1.05rem}
+  .resetline{margin-top:10px}
+  .linkbtn{background:none;border:none;color:var(--green-faint);font-family:var(--font);font-size:.95rem;cursor:pointer;padding:0;letter-spacing:1px}
+  .linkbtn:hover{color:var(--green);text-decoration:underline}
+  ::selection{background:var(--green);color:#000;text-shadow:none}
+</style>
+</head>
+<body>
+<div class="poweron"></div>
+<div class="scanlines"></div>
+<div class="flickerlayer"></div>
+<div class="vignette"></div>
+
+<div class="wrap">
+  <div class="bootline" id="bootline"></div>
+  <div class="titlewrap"><h1 id="title">DECRYPT FRIDAY<span class="cursor" id="cursor">&nbsp;</span></h1></div>
+  <div class="sub">&gt; crack the code &mdash; new cipher every friday</div>
+
+  <div id="locked" class="lockpanel" style="display:none">
+    <div class="lock-tag">&gt; ACCESS LOCKED</div>
+    <div class="lock-title">FIRST TRANSMISSION INCOMING</div>
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="lock-sub" id="locksub"></div>
+  </div>
+
+  <div id="game">
+  <div class="headrow">
+    <span class="no" id="no">FILE No. 1</span>
+    <div class="nav">
+      <button id="prev" title="Previous">&lt;</button>
+      <span id="datelabel">—</span>
+      <button id="next" title="Next">&gt;</button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="cipherbox">
+    <div class="prompt-tag" id="prompttag">&gt; incoming transmission // decrypt to proceed</div>
+    <div class="cipher" id="cipher">—</div>
+    <div class="plainprev" id="plainprev"></div>
+    <div class="kind" id="kind">encrypted message</div>
+  </div>
+
+  <div class="inputrow">
+    <span class="caret">&gt;</span>
+    <input class="guess" id="guess" placeholder="type the decoded message" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="btnrow">
+    <button class="btn" id="hintbtn">Hint</button>
+    <button class="btn primary" id="submit">Decrypt</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="hints" id="hintbox"></div>
+
+  <div class="reveal" id="reveal">
+    <div class="quote" id="quote"></div>
+    <div class="who" id="who"></div>
+    <div class="note" id="note"></div>
+
+    <div class="card" id="card">
+      <div class="card-bar"><span>DECRYPT FRIDAY</span><span id="card-no">No. 1</span></div>
+      <div class="card-body">
+        <div class="card-cipher" id="card-cipher"></div>
+        <div class="card-meter" id="card-meter"></div>
+        <div class="card-score" id="card-score">Cracked</div>
+        <div class="card-foot" id="card-foot"></div>
+      </div>
+    </div>
+
+    <div class="share">
+      <button class="btn" id="copy">Copy result</button>
+      <button class="btn primary" id="next2">Next</button>
+    </div>
+    <div class="hintsline">&gt; screenshot the card above to share your result</div>
+  </div>
+
+  <div class="streak" id="streak"></div>
+  <div class="resetline"><button class="linkbtn" id="resetbtn">&gt; reset my progress</button></div>
+  </div>
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const RELEASE0 = new Date(2026,7,7,6,0); // first drop: Fri Aug 7 2026, 06:00 ET (month 0-indexed)
+const PLAY_URL = "";                     // paste your live URL, e.g. https://decrypt-friday.netlify.app
+
+/* ============ PUZZLES (ciphertext generated from plaintext at runtime) ============ */
+/* SAYINGS = security wisdom weeks. SONGS = parody weeks (original title-riffs, no real lyrics). */
+const SAYINGS = [
+ {plain:"TRUST, BUT VERIFY.", who:"Russian proverb", cipher:{t:"caesar",s:3},
+  note:"The heart of <b>Zero Trust</b>: verification never stops — not even for insiders, not even after they're already in."},
+ {plain:"A CHAIN IS ONLY AS STRONG AS ITS WEAKEST LINK.", who:"Proverb", cipher:{t:"caesar",s:5},
+  note:"In security the weakest link is almost always a <b>human</b>, not a firewall. Attackers know exactly where to push."},
+ {plain:"SECURITY IS A PROCESS, NOT A PRODUCT.", who:"Bruce Schneier", cipher:{t:"caesar",s:7},
+  note:"No tool is 'set and forget'. Security is <b>maintained</b>, never finished — the day you stop tending it is the day it decays."},
+ {plain:"HACK THE PLANET!", who:"Hackers (1995)", cipher:{t:"caesar",s:13},
+  note:"That was <b>ROT13</b> — a shift of 13. The classic 'toy' cipher: reversible with itself, and offering exactly zero real security."},
+ {plain:"COMPLEXITY IS THE WORST ENEMY OF SECURITY.", who:"Bruce Schneier", cipher:{t:"caesar",s:4},
+  note:"Every feature you add is attack surface you add. <b>Simplicity is a control</b> — the code that isn't there can't be exploited."},
+ {plain:"AMATEURS HACK SYSTEMS, PROFESSIONALS HACK PEOPLE.", who:"Bruce Schneier", cipher:{t:"caesar",s:11},
+  note:"Why crack encryption when you can just ask nicely? <b>Social engineering</b> beats math almost every time."},
+ {plain:"THERE IS NO SPOON.", who:"The Matrix", cipher:{t:"atbash"},
+  note:"That was <b>Atbash</b> — A becomes Z, B becomes Y. Fitting: the best social engineers make you doubt what's real. Verify before you bend."},
+ {plain:"WITH GREAT POWER COMES GREAT RESPONSIBILITY.", who:"Spider-Man", cipher:{t:"caesar",s:6},
+  note:"The case for <b>least privilege</b>: admin rights are power, and power demands accountability. Grant the minimum, log the rest."},
+ {plain:"WINTER IS COMING.", who:"Game of Thrones", cipher:{t:"caesar",s:15},
+  note:"The Stark school of <b>threat modeling</b>: assume the attack is inevitable, and spend the quiet season preparing for it."},
+ {plain:"ONE DOES NOT SIMPLY WALK INTO THE NETWORK.", who:"after The Lord of the Rings", cipher:{t:"caesar",s:9},
+  note:"Or at least they shouldn't. <b>Zero Trust</b> assumes every single step inside the perimeter must still be earned."},
+ {plain:"THERE IS NO PATCH FOR CARELESSNESS.", who:"Security adage", cipher:{t:"caesar",s:8},
+  note:"Awareness training exists because the vulnerability between keyboard and chair has <b>no CVE</b> and never fully closes."},
+ {plain:"ASSUME BREACH. VERIFY ALWAYS.", who:"Zero Trust mantra", cipher:{t:"caesar",s:17},
+  note:"Design as if the attacker is <b>already inside</b> — because statistically, on any given day, they might be."},
+ {plain:"ENCRYPT EVERYTHING. TRUST NOTHING.", who:"Zero Trust adage", cipher:{t:"atbash"},
+  note:"That was <b>Atbash</b> again. Data encrypted at rest and in transit is useless to a thief who grabs it — <b>encryption is the last line</b>."},
+ {plain:"PATCH TODAY, SLEEP TONIGHT.", who:"SOC wisdom", cipher:{t:"caesar",s:20},
+  note:"Most exploited vulnerabilities already have a patch available on breach day. <b>Speed of patching</b> is the whole game."},
+ {plain:"THE PASSWORD IS THE FRONT DOOR.", who:"Original", cipher:{t:"caesar",s:12},
+  note:"And most people leave it unlocked with a sticky note nearby. <b>MFA is the deadbolt</b> — cheap, and it stops most break-ins."},
+ {plain:"LOG EVERYTHING, REGRET NOTHING.", who:"SOC wisdom", cipher:{t:"caesar",s:22},
+  note:"You can't investigate what you never recorded. <b>Logging is future-you's best friend</b> during an incident at 3am."},
+ {plain:"ONLY AMATEURS TARGET MACHINES.", who:"after Bruce Schneier", cipher:{t:"vigenere",k:"PHISH"},
+  note:"That was <b>Vigenere</b> — it uses a repeating keyword instead of one shift, which is far tougher and the first real step toward modern crypto."},
+ {plain:"DATA IS THE NEW OIL. GUARD THE WELLS.", who:"Modern adage", cipher:{t:"vigenere",k:"CIPHER"},
+  note:"<b>Vigenere</b> again, keyword CIPHER. Data is an asset and a liability at once — unguarded, it's a spill waiting to happen."},
+ {plain:"BACKUPS OR IT DIDNT HAPPEN.", who:"Ops wisdom", cipher:{t:"reverse"},
+  note:"That one was just <b>reversed</b> — a reminder that obscurity is not security. A backup you've never restored from is only a rumor."},
+ {plain:"KNOW WHAT YOU OWN.", who:"Asset management adage", cipher:{t:"a1z26"},
+  note:"That was <b>A1Z26</b> — letters as their alphabet position. You can't protect an asset you don't know you have; inventory is control zero."},
+ {plain:"SOS IS NOT A BACKUP PLAN.", who:"SOC wisdom", cipher:{t:"morse"},
+  note:"That was <b>Morse code</b> — the original long-distance cipher. SOS was chosen for its unmistakable rhythm, not because it stands for anything."},
+ {plain:"DEFENSE IN DEPTH.", who:"Security principle", cipher:{t:"railfence",r:3},
+  note:"That was a <b>Rail Fence</b> — a transposition cipher. It never changes the letters, only their order. Layers within layers."},
+ {plain:"HELLO WORLD.", who:"Every coder's first line", cipher:{t:"binary"},
+  note:"That was <b>binary</b> — 8 bits per letter, exactly how a computer stores this text. Underneath every cipher, it's all just ones and zeros."},
+ {plain:"MATH IS THE ONLY REAL LOCK.", who:"Cryptographer's creed", cipher:{t:"affine",a:5,b:8},
+  note:"That was an <b>Affine cipher</b> — (5x + 8) mod 26. Modern encryption is this idea grown up: security resting on math too costly to reverse."},
+];
+const SONGS = [
+ {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
+  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."},
+ {song:true, plain:"NEVER GONNA GIVE ROOT UP.", who:"with apologies to Rick Astley", cipher:{t:"atbash"},
+  note:"The anthem of <b>least privilege</b>: admin and root are the rights you never hand out casually, and never stop tracking."},
+ {song:true, plain:"SHOULD I PATCH OR SHOULD I GO?", who:"with apologies to The Clash", cipher:{t:"caesar",s:6},
+  note:"The eternal ops dilemma. The answer is almost always <b>patch</b> — the risk of the known hole beats the risk of the reboot."},
+ {song:true, plain:"EVERY LOG YOU TAKE.", who:"with apologies to The Police", cipher:{t:"vigenere",k:"AUDIT"},
+  note:"The unofficial theme of the <b>SOC</b>: every event recorded and watched, because you can't investigate what you never logged."},
+ {song:true, plain:"SMELLS LIKE ZERO TRUST.", who:"with apologies to Nirvana", cipher:{t:"caesar",s:9},
+  note:"The modern security mood. <b>Zero Trust</b>: assume nothing, verify everything, and trust no network by default."},
+ {song:true, plain:"TAKE ON MFA.", who:"with apologies to a-ha", cipher:{t:"a1z26"},
+  note:"Take on me — but first, take on <b>MFA</b>. The single cheapest control that stops the most account takeovers."},
+ {song:true, plain:"DON'T STOP PATCHIN'.", who:"with apologies to Journey", cipher:{t:"caesar",s:14},
+  note:"Don't stop. <b>Continuous patching</b> is boring and unglamorous — and the single biggest reason you sleep at night."},
+ {song:true, plain:"HARDER, BETTER, FASTER, ENCRYPTED.", who:"with apologies to Daft Punk", cipher:{t:"railfence",r:3},
+  note:"Harder, better, faster — and above all, <b>encrypted</b>. Data protected at rest and in transit is data a thief can't use."},
+];
+/* Interleave: a parody lands on every 4th week; sayings fill the rest. */
+const PUZZLES = (function(){
+  const out=[]; let si=0, gi=0; const total=SAYINGS.length+SONGS.length;
+  for(let i=0;i<total;i++){
+    if((i+1)%4===0 && gi<SONGS.length) out.push(SONGS[gi++]);
+    else if(si<SAYINGS.length) out.push(SAYINGS[si++]);
+    else if(gi<SONGS.length) out.push(SONGS[gi++]);
+  }
+  return out;
+})();
+
+/* ============ CIPHER ENGINE ============ */
+const A=65;
+const MORSE={A:".-",B:"-...",C:"-.-.",D:"-..",E:".",F:"..-.",G:"--.",H:"....",I:"..",J:".---",K:"-.-",L:".-..",M:"--",N:"-.",O:"---",P:".--.",Q:"--.-",R:".-.",S:"...",T:"-",U:"..-",V:"...-",W:".--",X:"-..-",Y:"-.--",Z:"--..","0":"-----","1":".----","2":"..---","3":"...--","4":"....-","5":".....","6":"-....","7":"--...","8":"---..","9":"----."};
+function encCaesar(t,s){return t.split("").map(c=>{const x=c.charCodeAt(0);return(x>=65&&x<=90)?String.fromCharCode((x-A+s)%26+A):c;}).join("");}
+function encAtbash(t){return t.split("").map(c=>{const x=c.charCodeAt(0);return(x>=65&&x<=90)?String.fromCharCode(90-(x-65)):c;}).join("");}
+function encVigenere(t,key){let ki=0;return t.split("").map(c=>{const x=c.charCodeAt(0);if(x>=65&&x<=90){const k=key.charCodeAt(ki%key.length)-A;ki++;return String.fromCharCode((x-A+k)%26+A);}return c;}).join("");}
+function encReverse(t){return t.split("").reverse().join("");}
+function encAffine(t,a,b){return t.split("").map(c=>{const x=c.charCodeAt(0);return(x>=65&&x<=90)?String.fromCharCode(((a*(x-65)+b)%26)+65):c;}).join("");}
+function words(t){return t.toUpperCase().split(/\s+/).map(w=>w.split("").filter(c=>/[A-Z0-9]/.test(c)));}
+function encMorse(t){return words(t).map(w=>w.map(c=>MORSE[c]).join(" ")).filter(w=>w.length).join("  /  ");}
+function encA1Z26(t){return words(t).map(w=>w.filter(c=>/[A-Z]/.test(c)).map(c=>c.charCodeAt(0)-64).join("-")).filter(w=>w.length).join(" / ");}
+function encBinary(t){return words(t).map(w=>w.filter(c=>/[A-Z]/.test(c)).map(c=>c.charCodeAt(0).toString(2).padStart(8,"0")).join(" ")).filter(w=>w.length).join("  /  ");}
+function encRail(t,rails){const s=t.toUpperCase().replace(/[^A-Z]/g,"");const rows=Array.from({length:rails},()=>[]);let r=0,dir=1;for(const ch of s){rows[r].push(ch);if(r===0)dir=1;else if(r===rails-1)dir=-1;r+=dir;}return rows.map(x=>x.join("")).join(" ");}
+function encrypt(p){const c=p.cipher;switch(c.t){
+  case"caesar":return encCaesar(p.plain,c.s);
+  case"atbash":return encAtbash(p.plain);
+  case"vigenere":return encVigenere(p.plain,c.k);
+  case"reverse":return encReverse(p.plain);
+  case"affine":return encAffine(p.plain,c.a,c.b);
+  case"morse":return encMorse(p.plain);
+  case"a1z26":return encA1Z26(p.plain);
+  case"binary":return encBinary(p.plain);
+  case"railfence":return encRail(p.plain,c.r);
+  default:return p.plain;}}
+function kindLabel(c){return({caesar:"Caesar shift",atbash:"Atbash",vigenere:"Vigenère cipher",reverse:"Reversed text",affine:"Affine cipher",morse:"Morse code",a1z26:"A1Z26 cipher",binary:"Binary (ASCII)",railfence:"Rail Fence cipher"})[c.t]||"cipher";}
+function hint1(c){return({
+  caesar:"It's a Caesar shift — every letter moves the same number of places along the alphabet.",
+  atbash:"It's the Atbash cipher — the alphabet is mirrored, A with Z.",
+  vigenere:"It's a Vigenère cipher — a repeating keyword shifts each letter by a different amount.",
+  reverse:"The whole message is simply written backwards.",
+  affine:"It's an Affine cipher — each letter is a math function of its position.",
+  morse:"It's Morse code — dots and dashes, one pattern per letter.",
+  a1z26:"It's A1Z26 — each number is a letter's position in the alphabet.",
+  binary:"It's binary — each group of 8 bits is one letter's ASCII code.",
+  railfence:"It's a Rail Fence — the right letters, written in a zigzag and reordered."
+})[c.t]||"";}
+function hint2(c){switch(c.t){
+  case"caesar":return "Each letter is shifted forward by "+c.s+". Shift every letter back by "+c.s+".";
+  case"atbash":return "Mirror the alphabet: A with Z, B with Y, C with X, and so on.";
+  case"vigenere":return "The repeating keyword is "+c.k.length+" letters long and starts with '"+c.k[0]+"'.";
+  case"reverse":return "Read the message from right to left.";
+  case"affine":return "Encryption is (a·x + b) mod 26 with a="+c.a+", b="+c.b+" (A=0). Work it backwards.";
+  case"morse":return "Letters are split by a space, words by '/'. For example .- is A and -... is B.";
+  case"a1z26":return "1=A, 2=B, up to 26=Z. Numbers within a word join with '-', words split by '/'.";
+  case"binary":return "Turn each 8-bit group into a number, then into its letter (A=65, B=66 …).";
+  case"railfence":return "It's written across "+c.r+" rails in a zigzag. Rebuild the fence and read the zigzag.";
+  default:return "";
+}}
+function norm(s){return s.toUpperCase().replace(/[^A-Z]/g,"");}
+
+/* ============ ENGINE ============ */
+const $=id=>document.getElementById(id);
+const DAY=86400000;
+const params=new URLSearchParams(location.search);
+const PERSIST=true;
+const SAVE_PREFIX="decrypt_v2_";
+if(params.has('reset')){Object.keys(localStorage).filter(k=>k.startsWith(SAVE_PREFIX)).forEach(k=>localStorage.removeItem(k));location.replace(location.pathname);}
+function etNow(){
+  const f=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(new Date());
+  const g=t=>+f.find(p=>p.type===t).value;
+  return new Date(g('year'),g('month')-1,g('day'),g('hour'),g('minute'));
+}
+function releasedCount(){const diff=etNow()-RELEASE0;if(diff<0)return 0;return Math.min(PUZZLES.length,Math.floor(diff/(7*DAY))+1);}
+function dateFor(i){const d=new Date(RELEASE0.getTime()+i*7*DAY);return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
+const RELEASED=releasedCount();
+const AVAILABLE=RELEASED;            // nothing is playable until 6:00 AM ET on launch day
+let view=Math.max(0,AVAILABLE-1);
+let hints=0, solved=false;
+
+function key(i){return "decrypt_v2_"+i;}
+function savedRec(i){try{return JSON.parse(localStorage.getItem(key(i)));}catch(e){return null;}}
+
+function load(i){
+  view=i; hints=0; solved=false;
+  const p=PUZZLES[i];
+  $("cipher").textContent=encrypt(p);
+  $("plainprev").textContent="";
+  $("kind").textContent="encrypted message";
+  $("prompttag").textContent = p.song ? "> intercepted broadcast // PARODY TRANSMISSION" : "> incoming transmission // decrypt to proceed";
+  $("no").textContent="FILE No. "+(i+1);
+  $("datelabel").textContent=dateFor(i);
+  $("prev").disabled=(i<=0);
+  $("next").disabled=(i>=AVAILABLE-1);
+  $("guess").value=""; $("status").textContent="";
+  $("reveal").classList.remove("show"); $("hintbox").innerHTML="";
+  $("guess").style.display=""; $("submit").style.display=""; $("hintbtn").style.display="";
+  $("banner").style.display="none";
+  const rec=PERSIST?savedRec(i):null;
+  if(rec){hints=rec.h||0; win(true);}
+  updateStreak();
+}
+function addHint(t){const d=document.createElement('div');d.className='hintline show';d.textContent="> "+t;$("hintbox").appendChild(d);}
+function doHint(){
+  if(solved)return;
+  const p=PUZZLES[view];
+  if(hints===0){hints=1;$("kind").textContent=kindLabel(p.cipher);addHint("HINT 1 // "+hint1(p.cipher));}
+  else if(hints===1){hints=2;addHint("HINT 2 // "+hint2(p.cipher));}
+  else if(hints===2){hints=3;addHint("HINT 3 // first word: "+p.plain.split(" ")[0].replace(/[^A-Za-z]/g,''));}
+  else{win(false,true);}
+}
+function submit(){
+  if(solved)return;
+  const g=norm($("guess").value);
+  if(!g){$("status").textContent="> input required.";return;}
+  if(g===norm(PUZZLES[view].plain)) win(false);
+  else $("status").textContent="> access denied. try a hint, or keep cracking.";
+}
+function win(fromSave,gaveUp){
+  solved=true;
+  if(!fromSave&&PERSIST) localStorage.setItem(key(view),JSON.stringify({h:hints}));
+  const p=PUZZLES[view];
+  $("cipher").textContent=encrypt(p);
+  $("plainprev").textContent=p.plain;
+  $("kind").textContent=kindLabel(p.cipher);
+  $("quote").textContent="“"+p.plain+"”";
+  $("who").textContent="— "+p.who;
+  $("note").innerHTML=p.note;
+  renderCard();
+  $("reveal").classList.add("show");
+  $("guess").style.display="none"; $("submit").style.display="none"; $("hintbtn").style.display="none";
+  $("status").textContent = fromSave ? "> already decrypted."
+    : gaveUp ? "> revealed."
+    : "> ACCESS GRANTED "+(hints?("// "+hints+" hint"+(hints>1?"s":"")+" used"):("// no hints"))+".";
+  updateStreak();
+}
+function renderCard(){
+  const p=PUZZLES[view];
+  $("card-no").textContent="No. "+(view+1);
+  $("card-cipher").textContent=encrypt(p);
+  const meter=$("card-meter"); meter.innerHTML="";
+  for(let i=0;i<3;i++){const s=document.createElement('span');s.className='pip'+(i<(3-hints)?' on':'');meter.appendChild(s);}
+  $("card-score").textContent = hints===0 ? "CRACKED // no hints" : "CRACKED // "+hints+" hint"+(hints>1?"s":"");
+  $("card-foot").textContent = PLAY_URL || "a new cipher every friday";
+}
+function updateStreak(){let c=0;for(let i=0;i<PUZZLES.length;i++)if(savedRec(i))c++;$("streak").textContent=c>0?("> "+c+" of "+PUZZLES.length+" codes cracked"):"";}
+function copyResult(){
+  const txt="DECRYPT FRIDAY No. "+(view+1)+"\n"+(hints===0?"Cracked with no hints":"Cracked with "+hints+" hint"+(hints>1?"s":""))+(PLAY_URL?("\n"+PLAY_URL):"");
+  navigator.clipboard.writeText(txt).then(()=>{$("copy").textContent="Copied";setTimeout(()=>$("copy").textContent="Copy result",1400);});
+}
+
+$("submit").onclick=submit;
+$("hintbtn").onclick=doHint;
+$("copy").onclick=copyResult;
+$("guess").addEventListener("keydown",e=>{if(e.key==="Enter")submit();});
+$("prev").onclick=()=>{if(view>0)load(view-1);};
+$("next").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
+$("next2").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
+$("resetbtn").onclick=()=>{Object.keys(localStorage).filter(k=>k.startsWith(SAVE_PREFIX)).forEach(k=>localStorage.removeItem(k));location.reload();};
+
+function pad(n){return String(n).padStart(2,"0");}
+function showLocked(){
+  $("game").style.display="none";
+  $("locked").style.display="block";
+  $("locksub").textContent="unlocks "+dateFor(0)+" · 06:00 ET";
+  (function tick(){
+    const ms=RELEASE0-etNow();
+    if(ms<=0){location.reload();return;}
+    const s=Math.floor(ms/1000);
+    $("countdown").textContent=pad(Math.floor(s/3600))+":"+pad(Math.floor((s%3600)/60))+":"+pad(s%60);
+    setTimeout(tick,1000);
+  })();
+}
+
+if(RELEASED===0) showLocked(); else load(view);
+
+/* ============ BOOT FLAVOR ============ */
+(function(){
+  const line=$("bootline");
+  const txt="> booting decrypt.sys ............ OK";
+  let i=0;
+  (function tick(){ if(i<=txt.length){ line.textContent=txt.slice(0,i); i++; setTimeout(tick, 26); } })();
+})();
+</script>
+</body>
+</html>

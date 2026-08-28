@@ -1,0 +1,101 @@
+diff --git a/index.html b/index.html
+index 01d3be9..08932bf 100644
+--- a/index.html
++++ b/index.html
+@@ -69,7 +69,12 @@
+   .no{color:var(--green-dim);font-size:1rem}
+ 
+   .banner{border:1px dashed var(--amber);color:var(--amber);padding:8px 12px;margin:0 0 14px;
+-    text-shadow:0 0 5px rgba(255,176,0,.5);display:none}
++    text-shadow:0 0 5px rgba(255,176,0,.5);display:none;font-size:1.02rem;letter-spacing:1px}
++  .banner a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(255,176,0,.45)}
++  .banner a:hover{background:var(--amber);color:#000;text-shadow:none}
++  .banner .clock{color:#ffd88a;text-shadow:0 0 7px rgba(255,176,0,.7)}
++  .banner .blip{animation:blip 1.06s steps(1) infinite}
++  @keyframes blip{0%,49%{opacity:1}50%,100%{opacity:.25}}
+ 
+   .cipherbox{border:1px solid var(--green-faint);padding:26px 18px;text-align:center;background:rgba(51,255,102,.02)}
+   .prompt-tag{color:var(--green-dim);font-size:.95rem;text-align:left;margin-bottom:10px}
+@@ -216,6 +221,18 @@ const RELEASE0 = new Date(2026,7,7,6,0);
+ // YOUR LIVE URL — after you deploy, paste it here so the share card links back to your game.
+ const PLAY_URL = "";                     // e.g. "https://decrypt-friday.netlify.app"
+ 
++/* ---- COUNTDOWN BANNER (the amber strip at the top) ----
++   Set enabled:false to switch it off. It hides itself automatically once
++   the deadline passes. MONTH IS 0-BASED (Dec = 11). */
++const CAMPAIGN = {
++  enabled : true,
++  deadline: new Date(2026,11,7,0,0),                       // Dec 7, 2026
++  url     : "https://www.anecdotes.ai/fedramp-ver-vdr",
++  label   : "UNTIL FEDRAMP VDR/VER GOES MANDATORY",
++  cta     : "get ready",
++  onlyOn  : null   // null = show on every week. Or [3] to show it only on File No. 4.
++};
++
+ /* ================================================================
+    ★ EDIT HERE — YOUR WEEKLY PUZZLES   (search this file for:  EDIT HERE )
+    ================================================================
+@@ -318,8 +335,16 @@ const SAYINGS = [
+ /* SONGS — parody weeks. Auto-sprinkled into the calendar (see the note at the very bottom).
+    Remember: original riffs on song TITLES only, never real lyrics. */
+ const SONGS = [
+- {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
+-  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."},
++ /* ★★★ FEDRAMP WEEK — VDR/VER countdown to Dec 7, 2026. ★★★
++    NOTE: this sits in the SONGS list only because that's what controls the DATE
++    (week 4 pulls from SONGS). It has no  song:true , so it airs as a normal
++    transmission with no parody tag. To restore the original week 4, delete this
++    block and un-comment the one below it. */
++ {plain:"THE CLOCK IS TICKING.", who:"December 7, 2026", cipher:{t:"caesar",s:7},
++  note:"That shift was <b>7</b> — as in <b>December 7, 2026</b>, the day FedRAMP's <b>VDR</b> (Vulnerability Detection and Response) and <b>VER</b> (Vulnerability Evaluation and Reporting) rules go mandatory for cloud service providers. Miss it and the offering goes under a corrective action plan, with notice to every agency customer you have. The grace period runs out March 7, 2027.<br><br>What actually changes: vulnerability management stops being a report you assemble and becomes a program that runs. Detect continuously, triage by real exposure instead of raw CVSS, remediate against a clock, and report to your agencies in a form they can check without taking your word for it. <b>A screenshot proves a moment. These rules ask you to prove a state.</b><br><br>That's the problem <a href=\"https://www.anecdotes.ai/fedramp-ver-vdr\" target=\"_blank\" rel=\"noopener\">anecdotes</a> works on — turning the new requirements into a live operating program on the security data and scanners you already run, instead of a binder you rebuild before every audit."},
++
++ /* {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
++  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."}, */
+  {song:true, plain:"NEVER GONNA GIVE ROOT UP.", who:"with apologies to Rick Astley", cipher:{t:"atbash"},
+   note:"The anthem of <b>least privilege</b>: admin and root are the rights you never hand out casually, and never stop tracking."},
+  {song:true, plain:"SHOULD I PATCH OR SHOULD I GO?", who:"with apologies to The Clash", cipher:{t:"caesar",s:6},
+@@ -404,6 +429,7 @@ function hint2(c){switch(c.t){
+ function norm(s){return s.toUpperCase().replace(/[^A-Z]/g,"");}
+ 
+ /* ============ ENGINE ============ */
++function pad(n){return String(n).padStart(2,"0");}
+ const $=id=>document.getElementById(id);
+ const DAY=86400000;
+ const params=new URLSearchParams(location.search);
+@@ -439,11 +465,27 @@ function load(i){
+   $("guess").value=""; $("status").textContent="";
+   $("reveal").classList.remove("show"); $("hintbox").innerHTML="";
+   $("guess").style.display=""; $("submit").style.display=""; $("hintbtn").style.display="";
+-  $("banner").style.display="none";
++  renderBanner(i);
+   const rec=PERSIST?savedRec(i):null;
+   if(rec){hints=rec.h||0; win(true);}
+   updateStreak();
+ }
++function renderBanner(i){
++  const el=$("banner");
++  if(!CAMPAIGN.enabled || (CAMPAIGN.onlyOn && CAMPAIGN.onlyOn.indexOf(i)===-1)){el.style.display="none";return;}
++  if(CAMPAIGN.deadline-etNow()<=0){el.style.display="none";return;}
++  el.style.display="block";
++  clearTimeout(renderBanner._t);
++  (function tick(){
++    const ms=CAMPAIGN.deadline-etNow();
++    if(ms<=0){el.style.display="none";return;}
++    const s=Math.floor(ms/1000), d=Math.floor(s/86400);
++    el.innerHTML='<span class="blip">\u25b8</span> <span class="clock">'+d+'d '
++      +pad(Math.floor((s%86400)/3600))+':'+pad(Math.floor((s%3600)/60))+':'+pad(s%60)
++      +'</span> '+CAMPAIGN.label+' \u00b7 <a href="'+CAMPAIGN.url+'" target="_blank" rel="noopener">'+CAMPAIGN.cta+'</a>';
++    renderBanner._t=setTimeout(tick,1000);
++  })();
++}
+ function addHint(t){const d=document.createElement('div');d.className='hintline show';d.textContent="> "+t;$("hintbox").appendChild(d);}
+ function doHint(){
+   if(solved)return;
+@@ -502,7 +544,6 @@ $("next").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
+ $("next2").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
+ $("resetbtn").onclick=()=>{Object.keys(localStorage).filter(k=>k.startsWith(SAVE_PREFIX)).forEach(k=>localStorage.removeItem(k));location.reload();};
+ 
+-function pad(n){return String(n).padStart(2,"0");}
+ function showLocked(){
+   $("game").style.display="none";
+   $("locked").style.display="block";

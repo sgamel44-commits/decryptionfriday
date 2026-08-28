@@ -69,7 +69,12 @@
   .no{color:var(--green-dim);font-size:1rem}
 
   .banner{border:1px dashed var(--amber);color:var(--amber);padding:8px 12px;margin:0 0 14px;
-    text-shadow:0 0 5px rgba(255,176,0,.5);display:none}
+    text-shadow:0 0 5px rgba(255,176,0,.5);display:none;font-size:1.02rem;letter-spacing:1px}
+  .banner a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(255,176,0,.45)}
+  .banner a:hover{background:var(--amber);color:#000;text-shadow:none}
+  .banner .clock{color:#ffd88a;text-shadow:0 0 7px rgba(255,176,0,.7)}
+  .banner .blip{animation:blip 1.06s steps(1) infinite}
+  @keyframes blip{0%,49%{opacity:1}50%,100%{opacity:.25}}
 
   .cipherbox{border:1px solid var(--green-faint);padding:26px 18px;text-align:center;background:rgba(51,255,102,.02)}
   .prompt-tag{color:var(--green-dim);font-size:.95rem;text-align:left;margin-bottom:10px}
@@ -216,6 +221,18 @@ const RELEASE0 = new Date(2026,7,7,6,0);
 // YOUR LIVE URL — after you deploy, paste it here so the share card links back to your game.
 const PLAY_URL = "";                     // e.g. "https://decrypt-friday.netlify.app"
 
+/* ---- COUNTDOWN BANNER (the amber strip at the top) ----
+   Set enabled:false to switch it off. It hides itself automatically once
+   the deadline passes. MONTH IS 0-BASED (Dec = 11). */
+const CAMPAIGN = {
+  enabled : true,
+  deadline: new Date(2026,11,7,0,0),                       // Dec 7, 2026
+  url     : "https://www.anecdotes.ai/fedramp-ver-vdr",
+  label   : "UNTIL FEDRAMP VDR/VER GOES MANDATORY",
+  cta     : "get ready",
+  onlyOn  : null   // null = show on every week. Or [3] to show it only on File No. 4.
+};
+
 /* ================================================================
    ★ EDIT HERE — YOUR WEEKLY PUZZLES   (search this file for:  EDIT HERE )
    ================================================================
@@ -259,83 +276,87 @@ const PLAY_URL = "";                     // e.g. "https://decrypt-friday.netlify
    PARODY RULE: original riffs on song TITLES only — never real lyrics.
    ================================================================ */
 const SAYINGS = [
- // ★★★ WEEK 1 — LAUNCH DAY. This is the first puzzle everyone sees. ★★★
+ // ★ WEEKS 1-3 ALREADY AIRED - DO NOT REORDER THESE THREE ★
  {song:true, plain:"BROADBAND KILLED THE DIAL-UP STAR.", who:"with apologies to The Buggles", cipher:{t:"caesar",s:3},
   note:"LAUNCH DAY. This week marks the anniversary of the first video ever aired on MTV — a song about new tech making old tech obsolete. Security runs on the same rule: <b>SSH replaced Telnet, HTTPS replaced HTTP, and MFA is coming for the password.</b> Old tech never retires — it gets replaced the moment something safer arrives."},
-
  {plain:"TRUST, BUT VERIFY.", who:"Russian proverb", cipher:{t:"caesar",s:3},
   note:"The heart of <b>Zero Trust</b>: verification never stops — not even for insiders, not even after they're already in."},
  {plain:"A CHAIN IS ONLY AS STRONG AS ITS WEAKEST LINK.", who:"Proverb", cipher:{t:"caesar",s:5},
   note:"In security the weakest link is almost always a <b>human</b>, not a firewall. Attackers know exactly where to push."},
- {plain:"SECURITY IS A PROCESS, NOT A PRODUCT.", who:"Bruce Schneier", cipher:{t:"caesar",s:7},
-  note:"No tool is 'set and forget'. Security is <b>maintained</b>, never finished — the day you stop tending it is the day it decays."},
- {plain:"HACK THE PLANET!", who:"Hackers (1995)", cipher:{t:"caesar",s:13},
-  note:"That was <b>ROT13</b> — a shift of 13. The classic 'toy' cipher: reversible with itself, and offering exactly zero real security."},
- {plain:"COMPLEXITY IS THE WORST ENEMY OF SECURITY.", who:"Bruce Schneier", cipher:{t:"caesar",s:4},
-  note:"Every feature you add is attack surface you add. <b>Simplicity is a control</b> — the code that isn't there can't be exploited."},
- {plain:"AMATEURS HACK SYSTEMS, PROFESSIONALS HACK PEOPLE.", who:"Bruce Schneier", cipher:{t:"caesar",s:11},
-  note:"Why crack encryption when you can just ask nicely? <b>Social engineering</b> beats math almost every time."},
  {plain:"THERE IS NO SPOON.", who:"The Matrix", cipher:{t:"atbash"},
   note:"That was <b>Atbash</b> — A becomes Z, B becomes Y. Fitting: the best social engineers make you doubt what's real. Verify before you bend."},
+ {plain:"HACK THE PLANET!", who:"Hackers (1995)", cipher:{t:"caesar",s:13},
+  note:"That was <b>ROT13</b> — a shift of 13. The classic 'toy' cipher: reversible with itself, and offering exactly zero real security."},
+ {plain:"BACKUPS OR IT DIDNT HAPPEN.", who:"Ops wisdom", cipher:{t:"reverse"},
+  note:"That one was just <b>reversed</b> — a reminder that obscurity is not security. A backup you've never restored from is only a rumor."},
+ {plain:"SOS IS NOT A BACKUP PLAN.", who:"SOC wisdom", cipher:{t:"morse"},
+  note:"That was <b>Morse code</b> — the original long-distance cipher. SOS was chosen for its unmistakable rhythm, not because it stands for anything."},
+ {plain:"SECURITY IS A PROCESS, NOT A PRODUCT.", who:"Bruce Schneier", cipher:{t:"caesar",s:7},
+  note:"No tool is 'set and forget'. Security is <b>maintained</b>, never finished — the day you stop tending it is the day it decays."},
+ {plain:"HELLO WORLD.", who:"Every coder's first line", cipher:{t:"binary"},
+  note:"That was <b>binary</b> — 8 bits per letter, exactly how a computer stores this text. Underneath every cipher, it's all just ones and zeros."},
+ {plain:"KNOW WHAT YOU OWN.", who:"Asset management adage", cipher:{t:"a1z26"},
+  note:"That was <b>A1Z26</b> — letters as their alphabet position. You can't protect an asset you don't know you have; inventory is control zero."},
+ {plain:"COMPLEXITY IS THE WORST ENEMY OF SECURITY.", who:"Bruce Schneier", cipher:{t:"caesar",s:4},
+  note:"Every feature you add is attack surface you add. <b>Simplicity is a control</b> — the code that isn't there can't be exploited."},
+ {plain:"ENCRYPT EVERYTHING. TRUST NOTHING.", who:"Zero Trust adage", cipher:{t:"atbash"},
+  note:"That was <b>Atbash</b> again. Data encrypted at rest and in transit is useless to a thief who grabs it — <b>encryption is the last line</b>."},
+ {plain:"ONLY AMATEURS TARGET MACHINES.", who:"after Bruce Schneier", cipher:{t:"vigenere",k:"PHISH"},
+  note:"That was <b>Vigenere</b> — it uses a repeating keyword instead of one shift, which is far tougher and the first real step toward modern crypto."},
+ {plain:"AMATEURS HACK SYSTEMS, PROFESSIONALS HACK PEOPLE.", who:"Bruce Schneier", cipher:{t:"caesar",s:11},
+  note:"Why crack encryption when you can just ask nicely? <b>Social engineering</b> beats math almost every time."},
+ {plain:"MATH IS THE ONLY REAL LOCK.", who:"Cryptographer's creed", cipher:{t:"affine",a:5,b:8},
+  note:"That was an <b>Affine cipher</b> — (5x + 8) mod 26. Modern encryption is this idea grown up: security resting on math too costly to reverse."},
+ {plain:"DATA IS THE NEW OIL. GUARD THE WELLS.", who:"Modern adage", cipher:{t:"vigenere",k:"CIPHER"},
+  note:"<b>Vigenere</b> again, keyword CIPHER. Data is an asset and a liability at once — unguarded, it's a spill waiting to happen."},
  {plain:"WITH GREAT POWER COMES GREAT RESPONSIBILITY.", who:"Spider-Man", cipher:{t:"caesar",s:6},
   note:"The case for <b>least privilege</b>: admin rights are power, and power demands accountability. Grant the minimum, log the rest."},
- {plain:"WINTER IS COMING.", who:"Game of Thrones", cipher:{t:"caesar",s:15},
+ {plain:"WINTER IS COMING.", who:"Game of Thrones", cipher:{t:"railfence",r:4},
   note:"The Stark school of <b>threat modeling</b>: assume the attack is inevitable, and spend the quiet season preparing for it."},
  {plain:"ONE DOES NOT SIMPLY WALK INTO THE NETWORK.", who:"after The Lord of the Rings", cipher:{t:"caesar",s:9},
   note:"Or at least they shouldn't. <b>Zero Trust</b> assumes every single step inside the perimeter must still be earned."},
+ {plain:"THE PASSWORD IS THE FRONT DOOR.", who:"Original", cipher:{t:"atbash"},
+  note:"And most people leave it unlocked with a sticky note nearby. <b>MFA is the deadbolt</b> — cheap, and it stops most break-ins."},
  {plain:"THERE IS NO PATCH FOR CARELESSNESS.", who:"Security adage", cipher:{t:"caesar",s:8},
   note:"Awareness training exists because the vulnerability between keyboard and chair has <b>no CVE</b> and never fully closes."},
- {plain:"ASSUME BREACH. VERIFY ALWAYS.", who:"Zero Trust mantra", cipher:{t:"caesar",s:17},
+ {plain:"ASSUME BREACH. VERIFY ALWAYS.", who:"Zero Trust mantra", cipher:{t:"reverse"},
   note:"Design as if the attacker is <b>already inside</b> — because statistically, on any given day, they might be."},
- {plain:"ENCRYPT EVERYTHING. TRUST NOTHING.", who:"Zero Trust adage", cipher:{t:"atbash"},
-  note:"That was <b>Atbash</b> again. Data encrypted at rest and in transit is useless to a thief who grabs it — <b>encryption is the last line</b>."},
  {plain:"PATCH TODAY, SLEEP TONIGHT.", who:"SOC wisdom", cipher:{t:"caesar",s:20},
   note:"Most exploited vulnerabilities already have a patch available on breach day. <b>Speed of patching</b> is the whole game."},
- {plain:"THE PASSWORD IS THE FRONT DOOR.", who:"Original", cipher:{t:"caesar",s:12},
-  note:"And most people leave it unlocked with a sticky note nearby. <b>MFA is the deadbolt</b> — cheap, and it stops most break-ins."},
- {plain:"LOG EVERYTHING, REGRET NOTHING.", who:"SOC wisdom", cipher:{t:"caesar",s:22},
+ {plain:"LOG EVERYTHING, REGRET NOTHING.", who:"SOC wisdom", cipher:{t:"a1z26"},
   note:"You can't investigate what you never recorded. <b>Logging is future-you's best friend</b> during an incident at 3am."},
- {plain:"ONLY AMATEURS TARGET MACHINES.", who:"after Bruce Schneier", cipher:{t:"vigenere",k:"PHISH"},
-  note:"That was <b>Vigenere</b> — it uses a repeating keyword instead of one shift, which is far tougher and the first real step toward modern crypto."},
- {plain:"DATA IS THE NEW OIL. GUARD THE WELLS.", who:"Modern adage", cipher:{t:"vigenere",k:"CIPHER"},
-  note:"<b>Vigenere</b> again, keyword CIPHER. Data is an asset and a liability at once — unguarded, it's a spill waiting to happen."},
- {plain:"BACKUPS OR IT DIDNT HAPPEN.", who:"Ops wisdom", cipher:{t:"reverse"},
-  note:"That one was just <b>reversed</b> — a reminder that obscurity is not security. A backup you've never restored from is only a rumor."},
- {plain:"KNOW WHAT YOU OWN.", who:"Asset management adage", cipher:{t:"a1z26"},
-  note:"That was <b>A1Z26</b> — letters as their alphabet position. You can't protect an asset you don't know you have; inventory is control zero."},
- {plain:"SOS IS NOT A BACKUP PLAN.", who:"SOC wisdom", cipher:{t:"morse"},
-  note:"That was <b>Morse code</b> — the original long-distance cipher. SOS was chosen for its unmistakable rhythm, not because it stands for anything."},
  {plain:"DEFENSE IN DEPTH.", who:"Security principle", cipher:{t:"railfence",r:3},
   note:"That was a <b>Rail Fence</b> — a transposition cipher. It never changes the letters, only their order. Layers within layers."},
- {plain:"HELLO WORLD.", who:"Every coder's first line", cipher:{t:"binary"},
-  note:"That was <b>binary</b> — 8 bits per letter, exactly how a computer stores this text. Underneath every cipher, it's all just ones and zeros."},
- {plain:"MATH IS THE ONLY REAL LOCK.", who:"Cryptographer's creed", cipher:{t:"affine",a:5,b:8},
-  note:"That was an <b>Affine cipher</b> — (5x + 8) mod 26. Modern encryption is this idea grown up: security resting on math too costly to reverse."},
 
  // >>> ADD NEW SECURITY (non-parody) PHRASES ABOVE THIS LINE <<<
+
 ];
 
 /* SONGS — parody weeks. Auto-sprinkled into the calendar (see the note at the very bottom).
    Remember: original riffs on song TITLES only, never real lyrics. */
 const SONGS = [
- {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
-  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."},
- {song:true, plain:"NEVER GONNA GIVE ROOT UP.", who:"with apologies to Rick Astley", cipher:{t:"atbash"},
-  note:"The anthem of <b>least privilege</b>: admin and root are the rights you never hand out casually, and never stop tracking."},
- {song:true, plain:"SHOULD I PATCH OR SHOULD I GO?", who:"with apologies to The Clash", cipher:{t:"caesar",s:6},
-  note:"The eternal ops dilemma. The answer is almost always <b>patch</b> — the risk of the known hole beats the risk of the reboot."},
- {song:true, plain:"EVERY LOG YOU TAKE.", who:"with apologies to The Police", cipher:{t:"vigenere",k:"AUDIT"},
-  note:"The unofficial theme of the <b>SOC</b>: every event recorded and watched, because you can't investigate what you never logged."},
- {song:true, plain:"SMELLS LIKE ZERO TRUST.", who:"with apologies to Nirvana", cipher:{t:"caesar",s:9},
-  note:"The modern security mood. <b>Zero Trust</b>: assume nothing, verify everything, and trust no network by default."},
- {song:true, plain:"TAKE ON MFA.", who:"with apologies to a-ha", cipher:{t:"a1z26"},
-  note:"Take on me — but first, take on <b>MFA</b>. The single cheapest control that stops the most account takeovers."},
- {song:true, plain:"DON'T STOP PATCHIN'.", who:"with apologies to Journey", cipher:{t:"caesar",s:14},
-  note:"Don't stop. <b>Continuous patching</b> is boring and unglamorous — and the single biggest reason you sleep at night."},
+ {plain:"THE CLOCK IS TICKING.", who:"December 7, 2026", cipher:{t:"a1z26"},
+  note:"That was <b>A1Z26</b> \u2014 every letter swapped for its position in the alphabet. Words in, numbers out. And the last number in the transmission is a <b>7</b>. That wasn't an accident.<br><br><b>December 7, 2026</b> is the day FedRAMP's <b>VDR</b> (Vulnerability Detection and Response) and <b>VER</b> (Vulnerability Evaluation and Reporting) rules go mandatory for cloud service providers. Miss it and the offering goes under a corrective action plan, with notice to every agency customer you have. The grace period runs out March 7, 2027.<br><br>The conversion you just did by hand is the one the rules are forcing on everybody: your vulnerability posture stops being prose an agency has to take on faith and becomes <b>structured data they can actually parse</b> \u2014 detected continuously, triaged by real exposure instead of raw CVSS, remediated against a clock. <b>A screenshot proves a moment. These rules ask you to prove a state.</b><br><br>That's the problem <a href=\"https://www.anecdotes.ai/fedramp-ver-vdr\" target=\"_blank\" rel=\"noopener\">anecdotes</a> works on \u2014 turning the new requirements into a live operating program on the security data and scanners you already run, instead of a binder you rebuild before every audit."},
  {song:true, plain:"HARDER, BETTER, FASTER, ENCRYPTED.", who:"with apologies to Daft Punk", cipher:{t:"railfence",r:3},
   note:"Harder, better, faster — and above all, <b>encrypted</b>. Data protected at rest and in transit is data a thief can't use."},
+ {song:true, plain:"EVERY LOG YOU TAKE.", who:"with apologies to The Police", cipher:{t:"vigenere",k:"AUDIT"},
+  note:"The unofficial theme of the <b>SOC</b>: every event recorded and watched, because you can't investigate what you never logged."},
+ {song:true, plain:"SHOULD I PATCH OR SHOULD I GO?", who:"with apologies to The Clash", cipher:{t:"caesar",s:6},
+  note:"The eternal ops dilemma. The answer is almost always <b>patch</b> — the risk of the known hole beats the risk of the reboot."},
+ {song:true, plain:"NEVER GONNA GIVE ROOT UP.", who:"with apologies to Rick Astley", cipher:{t:"atbash"},
+  note:"The anthem of <b>least privilege</b>: admin and root are the rights you never hand out casually, and never stop tracking."},
+ {song:true, plain:"TAKE ON MFA.", who:"with apologies to a-ha", cipher:{t:"a1z26"},
+  note:"Take on me — but first, take on <b>MFA</b>. The single cheapest control that stops the most account takeovers."},
+ {song:true, plain:"SMELLS LIKE ZERO TRUST.", who:"with apologies to Nirvana", cipher:{t:"caesar",s:9},
+  note:"The modern security mood. <b>Zero Trust</b>: assume nothing, verify everything, and trust no network by default."},
+ {song:true, plain:"DON'T STOP PATCHIN'.", who:"with apologies to Journey", cipher:{t:"caesar",s:14},
+  note:"Don't stop. <b>Continuous patching</b> is boring and unglamorous — and the single biggest reason you sleep at night."},
+
+ /* retired week 4: {song:true, plain:"FRIDAY I DECRYPT WITH YOU.", who:"with apologies to The Cure", cipher:{t:"caesar",s:4},
+  note:"A little joy for a Friday. The security point hiding in the fun: <b>verify before you trust</b> — even the things you love."}, */
 
  // >>> ADD NEW PARODY (song) WEEKS ABOVE THIS LINE <<<
+
 ];
 
 /* ---- CALENDAR BUILDER (you usually don't need to touch this) ----
@@ -404,6 +425,7 @@ function hint2(c){switch(c.t){
 function norm(s){return s.toUpperCase().replace(/[^A-Z]/g,"");}
 
 /* ============ ENGINE ============ */
+function pad(n){return String(n).padStart(2,"0");}
 const $=id=>document.getElementById(id);
 const DAY=86400000;
 const params=new URLSearchParams(location.search);
@@ -439,10 +461,26 @@ function load(i){
   $("guess").value=""; $("status").textContent="";
   $("reveal").classList.remove("show"); $("hintbox").innerHTML="";
   $("guess").style.display=""; $("submit").style.display=""; $("hintbtn").style.display="";
-  $("banner").style.display="none";
+  renderBanner(i);
   const rec=PERSIST?savedRec(i):null;
   if(rec){hints=rec.h||0; win(true);}
   updateStreak();
+}
+function renderBanner(i){
+  const el=$("banner");
+  if(!CAMPAIGN.enabled || (CAMPAIGN.onlyOn && CAMPAIGN.onlyOn.indexOf(i)===-1)){el.style.display="none";return;}
+  if(CAMPAIGN.deadline-etNow()<=0){el.style.display="none";return;}
+  el.style.display="block";
+  clearTimeout(renderBanner._t);
+  (function tick(){
+    const ms=CAMPAIGN.deadline-etNow();
+    if(ms<=0){el.style.display="none";return;}
+    const s=Math.floor(ms/1000), d=Math.floor(s/86400);
+    el.innerHTML='<span class="blip">\u25b8</span> <span class="clock">'+d+'d '
+      +pad(Math.floor((s%86400)/3600))+':'+pad(Math.floor((s%3600)/60))+':'+pad(s%60)
+      +'</span> '+CAMPAIGN.label+' \u00b7 <a href="'+CAMPAIGN.url+'" target="_blank" rel="noopener">'+CAMPAIGN.cta+'</a>';
+    renderBanner._t=setTimeout(tick,1000);
+  })();
 }
 function addHint(t){const d=document.createElement('div');d.className='hintline show';d.textContent="> "+t;$("hintbox").appendChild(d);}
 function doHint(){
@@ -502,7 +540,6 @@ $("next").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
 $("next2").onclick=()=>{if(view<AVAILABLE-1)load(view+1);};
 $("resetbtn").onclick=()=>{Object.keys(localStorage).filter(k=>k.startsWith(SAVE_PREFIX)).forEach(k=>localStorage.removeItem(k));location.reload();};
 
-function pad(n){return String(n).padStart(2,"0");}
 function showLocked(){
   $("game").style.display="none";
   $("locked").style.display="block";
